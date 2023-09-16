@@ -8,9 +8,11 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 )
 
 var (
+	mu sync.Mutex
 	timeSlice = make([] string, 0)
 	proSlice = make([] string, 0)
 	logSlice = make([] string, 0)
@@ -34,7 +36,7 @@ type (
 const (
 	tmplFilePath = "./temp/log.tmpl"
 	configJsonFile = "./config/glserver.json"
-	logLimitationNum = 1200
+	logLimitationNum = 10000
 )
 
 func readConfigFile(path string) (*config, error) {
@@ -74,20 +76,26 @@ func postReceiveLog(w http.ResponseWriter, r *http.Request){
 			return
 		}
 		if len(gameLogAll) >= logLimitationNum {
-			message := `{"status": 500, "error": "log overflow max 1200."}`
+			message := `{"status": 500, "error": "log overflow max limit num."}`
 			w.Write([]byte(message))
 			return
 		}
-		timeSlice = append(timeSlice, r.PostForm.Get("dateTime"))
-		proSlice = append(proSlice, r.PostForm.Get("pro"))
-		logSlice = append(logSlice,  r.PostForm.Get("gamelog"))
-		index := len(proSlice)-1
-		g := gameLog{
-			Time: timeSlice[index],
-			Pro: proSlice[index],
-			Log: logSlice[index],
-		}
-		gameLogAll = append(gameLogAll, g)
+
+		go func() {
+			mu.Lock()
+			defer mu.Unlock()
+			timeSlice = append(timeSlice, r.PostForm.Get("dateTime"))
+			proSlice = append(proSlice, r.PostForm.Get("pro"))
+			logSlice = append(logSlice, r.PostForm.Get("gamelog"))
+			index := len(proSlice) - 1
+			g := gameLog{
+				Time: timeSlice[index],
+				Pro:  proSlice[index],
+				Log:  logSlice[index],
+			}
+			gameLogAll = append(gameLogAll, g)
+		}()
+
 		message := `{"status": 200}`
 		w.Write([]byte(message))
 		return
@@ -178,7 +186,7 @@ func getErrLog(w http.ResponseWriter, r *http.Request) {
 		}
 
 		for _,v := range gameLogAll {
-			if strings.Contains(v.Log, "error") || strings.Contains(v.Log, "fail") {
+			if strings.Contains(v.Log, "error") || strings.Contains(v.Log, "fail") || strings.Contains(v.Log, "ERROR") || strings.Contains(v.Log, "FAIL") {
 				errLog = append(errLog, v)
 			}
 		}
@@ -202,7 +210,7 @@ func getErrLog(w http.ResponseWriter, r *http.Request) {
 
 
 func main() {
-	j, err := readConfigFile(configJsonFile)
+	c, err := readConfigFile(configJsonFile)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -212,8 +220,8 @@ func main() {
 	http.HandleFunc("/getlog", getLog)
 	http.HandleFunc("/ss", postSearch)
 	http.HandleFunc("/log/err", getErrLog)
-	log.Printf("INFO ---> http server listen ip and port: %s\n", j.ServiceIpPort)
-	e := http.ListenAndServe(j.ServiceIpPort, nil)
+	log.Printf("INFO ---> http server listen ip and port: %s\n", c.ServiceIpPort)
+	e := http.ListenAndServe(c.ServiceIpPort, nil)
 	if e != nil {
 		log.Fatal("ERROR ---> start glserver fail,", e.Error())
 	}
