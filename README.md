@@ -8,6 +8,6 @@
 
 修改conf目录下的json配置文件后直接运行./glserver
 
-前端图如下
+#### 前端图如下
 
 ![](pic/logsys.png)
