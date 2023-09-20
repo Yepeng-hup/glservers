@@ -6,7 +6,7 @@
 
 #### 服务启动
 
-修改conf目录下的json配置文件后直接运行./glserver
+修改conf目录下的json配置文件后直接运行./glserver 。
 
 #### 前端图如下
 
