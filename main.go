@@ -12,21 +12,22 @@ import (
 )
 
 var (
-	mu sync.Mutex
-	timeSlice = make([] string, 0)
-	proSlice = make([] string, 0)
-	logSlice = make([] string, 0)
-	gameLogAll = make([] gameLog, 0)
-	searchGameLog = make([] gameLog, 0)
-	errLog = make([]gameLog, 0)
-	cfg *config = nil
+	mu            sync.Mutex
+	timeSlice             = make([]string, 0)
+	proSlice              = make([]string, 0)
+	logSlice              = make([]string, 0)
+	gameLogAll            = make([]gameLog, 0)
+	searchGameLog         = make([]gameLog, 0)
+	errLog                = make([]gameLog, 0)
+	cfg           *config = nil
+	fs                    = http.FileServer(http.Dir("./static"))
 )
 
 type (
 	gameLog struct {
 		Time string
-		Pro string
-		Log string
+		Pro  string
+		Log  string
 	}
 	config struct {
 		ServiceIpPort string `json:"server_ip_port"`
@@ -34,8 +35,8 @@ type (
 )
 
 const (
-	tmplFilePath = "./temp/log.tmpl"
-	configJsonFile = "./config/glserver.json"
+	tmplFilePath     = "./temp/log.tmpl"
+	configJsonFile   = "./config/glserver.json"
 	logLimitationNum = 10000
 )
 
@@ -53,7 +54,6 @@ func readConfigFile(path string) (*config, error) {
 	return cfg, nil
 }
 
-
 func postDelLog(w http.ResponseWriter, r *http.Request) {
 	timeSlice = nil
 	proSlice = nil
@@ -67,12 +67,11 @@ func postDelLog(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusFound)
 }
 
-
-func postReceiveLog(w http.ResponseWriter, r *http.Request){
+func postReceiveLog(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		err := r.ParseForm()
 		if err != nil {
-			log.Println("ERROR ---> ",err.Error())
+			log.Println("ERROR ---> ", err.Error())
 			return
 		}
 		if len(gameLogAll) >= logLimitationNum {
@@ -105,17 +104,16 @@ func postReceiveLog(w http.ResponseWriter, r *http.Request){
 	return
 }
 
-
 func getLog(w http.ResponseWriter, r *http.Request) {
 
-	z,err := template.ParseFiles(tmplFilePath)
+	z, err := template.ParseFiles(tmplFilePath)
 	if err != nil {
-		log.Printf("ERROR ---> tmpl: %v \n",err.Error() )
+		log.Printf("ERROR ---> tmpl: %v \n", err.Error())
 		return
 	}
 
 	err = z.Execute(w, map[string]interface{}{
-		"logNum": len(gameLogAll),
+		"logNum":  len(gameLogAll),
 		"gameLog": gameLogAll,
 	})
 	if err != nil {
@@ -125,12 +123,11 @@ func getLog(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-
 func getIndex(w http.ResponseWriter, r *http.Request) {
 
-	z,err := template.ParseFiles(tmplFilePath)
+	z, err := template.ParseFiles(tmplFilePath)
 	if err != nil {
-		log.Printf("ERROR ---> tmpl: %v \n",err.Error() )
+		log.Printf("ERROR ---> tmpl: %v \n", err.Error())
 		return
 	}
 
@@ -144,31 +141,30 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-
 func postSearch(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
-		if len(searchGameLog)!=0 {
+		if len(searchGameLog) != 0 {
 			searchGameLog = nil
 		}
 		err := r.ParseForm()
 		if err != nil {
-			log.Println("ERROR ---> ",err.Error())
+			log.Println("ERROR ---> ", err.Error())
 		}
 		searchName := r.PostForm.Get("queryStr")
-		for _,v := range gameLogAll {
+		for _, v := range gameLogAll {
 			if strings.Contains(v.Pro, searchName) {
 				searchGameLog = append(searchGameLog, v)
 			}
 			continue
 		}
-		z,err := template.ParseFiles(tmplFilePath)
+		z, err := template.ParseFiles(tmplFilePath)
 		if err != nil {
-			log.Printf("ERROR ---> tmpl: %v \n",err.Error() )
+			log.Printf("ERROR ---> tmpl: %v \n", err.Error())
 			return
 		}
 
 		err = z.Execute(w, map[string]interface{}{
-			"logNum": len(searchGameLog),
+			"logNum":  len(searchGameLog),
 			"gameLog": searchGameLog,
 		})
 		if err != nil {
@@ -180,25 +176,25 @@ func postSearch(w http.ResponseWriter, r *http.Request) {
 
 func getErrLog(w http.ResponseWriter, r *http.Request) {
 
-	if r.Method == "GET"{
+	if r.Method == "GET" {
 		if len(errLog) != 0 {
 			errLog = nil
 		}
 
-		for _,v := range gameLogAll {
+		for _, v := range gameLogAll {
 			if strings.Contains(v.Log, "error") || strings.Contains(v.Log, "fail") || strings.Contains(v.Log, "ERROR") || strings.Contains(v.Log, "FAIL") {
 				errLog = append(errLog, v)
 			}
 		}
 
-		z,err := template.ParseFiles(tmplFilePath)
+		z, err := template.ParseFiles(tmplFilePath)
 		if err != nil {
-			log.Printf("ERROR ---> tmpl: %v \n",err.Error() )
+			log.Printf("ERROR ---> tmpl: %v \n", err.Error())
 			return
 		}
 
 		err = z.Execute(w, map[string]interface{}{
-			"logNum": len(errLog),
+			"logNum":  len(errLog),
 			"gameLog": errLog,
 		})
 		if err != nil {
@@ -207,7 +203,6 @@ func getErrLog(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
-
 
 func main() {
 	c, err := readConfigFile(configJsonFile)
@@ -220,6 +215,7 @@ func main() {
 	http.HandleFunc("/getlog", getLog)
 	http.HandleFunc("/ss", postSearch)
 	http.HandleFunc("/log/err", getErrLog)
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
 	log.Printf("INFO ---> http server listen ip and port: %s\n", c.ServiceIpPort)
 	e := http.ListenAndServe(c.ServiceIpPort, nil)
 	if e != nil {

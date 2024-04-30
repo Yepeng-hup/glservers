@@ -2,8 +2,8 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>GLserver Index</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>GLserver</title>
+    <link href="/static/css/csstools/bootstrap.min.css" rel="stylesheet">
 </head>
 <style>
     input[type="text"] {
@@ -16,32 +16,34 @@
     }
 </style>
 <body>
-<h2 style="text-align: center;color: #007bff">GLSERVER</h2>
-<li style="margin-left: 4px;">
-        <span style="color: crimson">
-            <b style="color: black">[日志总条数: {{.logNum}}]</b>
-        </span><br><br>
-</li>
-<form style="display: inline-block;" method="post" action="/ss">
-    <input type="text" id="searchInput" name="queryStr" placeholder="输入关键字">
-    <button type="submit" class="btn btn-success"><b>搜索</b></button>
-</form>
-<a href="/getlog">
-    <button class="btn btn-primary" style="margin-left: 2px;" id="clog"><b>查看日志</b></button>
-</a>
-<a href="/log/err">
-    <button class="btn btn-primary" style="margin-left: 2px;"><b>检测日志</b></button>
-</a>
+<div>
+    <h3 style="text-align: center;color: #007bff">GLSERVER</h3>
+    <li style="margin-left: 4px;">
+            <span style="color: crimson">
+                <b style="color: black">[日志总条数: {{.logNum}}]</b>
+            </span><br><br>
+    </li>
+    <form style="display: inline-block;" method="post" action="/ss">
+        <input type="text" id="searchInput" name="queryStr" placeholder="输入关键字">
+        <button type="submit" class="btn btn-success"><b>搜索</b></button>
+    </form>
+    <a href="/getlog" style="text-decoration: none;">
+        <button class="btn btn-primary" style="margin-left: 2px;" id="clog"><b>查看日志</b></button>
+    </a>
+    <a href="/log/err" style="text-decoration: none;">
+        <button class="btn btn-primary" style="margin-left: 2px;"><b>检测日志</b></button>
+    </a>
 
-<form method="post" action="/del">
-    <button class="btn btn-danger" style="position: absolute;top: 95px;right: 10px;">
-        <b>全部删除</b>
-    </button>
-</form>
-<br>
-<table class="table table-dark">
+    <form method="post" action="/del">
+        <button class="btn btn-danger" style="position: absolute;top: 95px;right: 10px;">
+            <b>全部删除</b>
+        </button>
+    </form>
+</div>
 
-    <thead>
+<table class="table table-dark" style="margin-top: 20px;">
+
+    <thead class="thead-dark sticky-top">
     <tr>
         <th>推送时间</th>
         <th>日志伪名</th>
