@@ -30,17 +30,17 @@ type (
 		Log  string
 	}
 	config struct {
-		ServiceIpPort string `json:"server_ip_port"`
+		ServiceIpPort    string `json:"server_ip_port"`
+		LogLimitationNum int    `json:"log_limitation_num"`
 	}
 )
 
 const (
-	tmplFilePath     = "./temp/log.tmpl"
-	configJsonFile   = "./config/glserver.json"
-	logLimitationNum = 10000
+	tmplFilePath   = "./temp/log.tmpl"
+	configJsonFile = "./config/glserver.json"
 )
 
-func readConfigFile(path string) (*config, error) {
+func readConfigFile(path string) error {
 	file, err := os.Open(path)
 	if err != nil {
 		log.Fatal("open json file: ", err.Error())
@@ -49,9 +49,9 @@ func readConfigFile(path string) (*config, error) {
 	f := bufio.NewReader(file)
 	configObj := json.NewDecoder(f)
 	if err = configObj.Decode(&cfg); err != nil {
-		return nil, err
+		return err
 	}
-	return cfg, nil
+	return nil
 }
 
 func postDelLog(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +74,7 @@ func postReceiveLog(w http.ResponseWriter, r *http.Request) {
 			log.Println("ERROR ---> ", err.Error())
 			return
 		}
-		if len(gameLogAll) >= logLimitationNum {
+		if len(gameLogAll) >= cfg.LogLimitationNum {
 			message := `{"status": 500, "error": "log overflow max limit num."}`
 			w.Write([]byte(message))
 			return
@@ -99,7 +99,7 @@ func postReceiveLog(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(message))
 		return
 	}
-	message := `{"msg": "error Illegal request."}`
+	message := `{"msg": "error illegal request."}`
 	w.Write([]byte(message))
 	return
 }
@@ -117,7 +117,7 @@ func getLog(w http.ResponseWriter, r *http.Request) {
 		"gameLog": gameLogAll,
 	})
 	if err != nil {
-		log.Printf("ERROR ---> z.Execute use, lr: %v \n", err.Error())
+		log.Printf("ERROR ---> z.Execute rendering error: %v \n", err.Error())
 		return
 	}
 	return
@@ -135,7 +135,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 		"logNum": 0,
 	})
 	if err != nil {
-		log.Printf("ERROR ---> z.Execute use, lr: %v \n", err.Error())
+		log.Printf("ERROR ---> z.Execute rendering error: %v \n", err.Error())
 		return
 	}
 	return
@@ -168,7 +168,7 @@ func postSearch(w http.ResponseWriter, r *http.Request) {
 			"gameLog": searchGameLog,
 		})
 		if err != nil {
-			log.Printf("ERROR ---> z.Execute use, lr: %v \n", err.Error())
+			log.Printf("ERROR ---> z.Execute rendering error: %v \n", err.Error())
 			return
 		}
 	}
@@ -198,16 +198,15 @@ func getErrLog(w http.ResponseWriter, r *http.Request) {
 			"gameLog": errLog,
 		})
 		if err != nil {
-			log.Printf("ERROR ---> z.Execute use, lr: %v \n", err.Error())
+			log.Printf("ERROR ---> z.Execute rendering error: %v \n", err.Error())
 			return
 		}
 	}
 }
 
 func main() {
-	c, err := readConfigFile(configJsonFile)
-	if err != nil {
-		log.Fatalln(err.Error())
+	if err := readConfigFile(configJsonFile); err != nil {
+		log.Fatalln("ERROR ---> init jsonfile config fail,", err.Error())
 	}
 	http.HandleFunc("/", getIndex)
 	http.HandleFunc("/del", postDelLog)
@@ -216,9 +215,8 @@ func main() {
 	http.HandleFunc("/ss", postSearch)
 	http.HandleFunc("/log/err", getErrLog)
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
-	log.Printf("INFO ---> http server listen ip and port: %s\n", c.ServiceIpPort)
-	e := http.ListenAndServe(c.ServiceIpPort, nil)
-	if e != nil {
-		log.Fatal("ERROR ---> start glserver fail,", e.Error())
+	log.Printf("INFO ---> http server listen ip and port: %s\n", cfg.ServiceIpPort)
+	if err := http.ListenAndServe(cfg.ServiceIpPort, nil); err != nil {
+		log.Fatalln("ERROR ---> start glserver fail,", err.Error())
 	}
 }
