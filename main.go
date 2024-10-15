@@ -7,13 +7,16 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
+	_ "strings"
 	"sync"
 )
 
 var (
 	mu            sync.Mutex
 	timeSlice             = make([]string, 0)
+	eipSlice              = make([]string, 0)
 	proSlice              = make([]string, 0)
 	logSlice              = make([]string, 0)
 	gameLogAll            = make([]gameLog, 0)
@@ -26,12 +29,14 @@ var (
 type (
 	gameLog struct {
 		Time string
+		Eip  string
 		Pro  string
 		Log  string
 	}
 	config struct {
-		ServiceIpPort    string `json:"server_ip_port"`
-		LogLimitationNum int    `json:"log_limitation_num"`
+		ServiceIpPort    string   `json:"server_ip_port"`
+		LogLimitationNum int      `json:"log_limitation_num"`
+		CustomKeywords   []string `json:"custom_keywords"`
 	}
 )
 
@@ -56,6 +61,7 @@ func readConfigFile(path string) error {
 
 func postDelLog(w http.ResponseWriter, r *http.Request) {
 	timeSlice = nil
+	eipSlice = nil
 	proSlice = nil
 	logSlice = nil
 	gameLogAll = nil
@@ -84,11 +90,13 @@ func postReceiveLog(w http.ResponseWriter, r *http.Request) {
 			mu.Lock()
 			defer mu.Unlock()
 			timeSlice = append(timeSlice, r.PostForm.Get("dateTime"))
-			proSlice = append(proSlice, r.PostForm.Get("pro"))
-			logSlice = append(logSlice, r.PostForm.Get("gamelog"))
+			eipSlice = append(eipSlice, r.PostForm.Get("eip"))
+			proSlice = append(proSlice, r.PostForm.Get("title"))
+			logSlice = append(logSlice, r.PostForm.Get("content"))
 			index := len(proSlice) - 1
 			g := gameLog{
 				Time: timeSlice[index],
+				Eip:  eipSlice[index],
 				Pro:  proSlice[index],
 				Log:  logSlice[index],
 			}
@@ -101,7 +109,6 @@ func postReceiveLog(w http.ResponseWriter, r *http.Request) {
 	}
 	message := `{"msg": "error illegal request."}`
 	w.Write([]byte(message))
-	return
 }
 
 func getLog(w http.ResponseWriter, r *http.Request) {
@@ -120,7 +127,6 @@ func getLog(w http.ResponseWriter, r *http.Request) {
 		log.Printf("ERROR ---> z.Execute rendering error: %v \n", err.Error())
 		return
 	}
-	return
 }
 
 func getIndex(w http.ResponseWriter, r *http.Request) {
@@ -138,7 +144,6 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 		log.Printf("ERROR ---> z.Execute rendering error: %v \n", err.Error())
 		return
 	}
-	return
 }
 
 func postSearch(w http.ResponseWriter, r *http.Request) {
@@ -150,13 +155,28 @@ func postSearch(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println("ERROR ---> ", err.Error())
 		}
+
 		searchName := r.PostForm.Get("queryStr")
-		for _, v := range gameLogAll {
-			if strings.Contains(v.Pro, searchName) {
-				searchGameLog = append(searchGameLog, v)
+		searchMode := r.PostForm.Get("selectxz")
+		if searchMode == "vague" {
+			// 模糊匹配搜索字符
+			for _, v := range gameLogAll {
+				if strings.Contains(v.Pro, searchName) {
+					searchGameLog = append(searchGameLog, v)
+				}
+				continue
 			}
-			continue
+		}else {
+			// 精准匹配搜索字符
+			for _, l := range gameLogAll {
+				regexStr := `\b` + searchName + `\b`
+				matched, _ := regexp.MatchString(regexStr, l.Pro)
+				if matched {
+					searchGameLog = append(searchGameLog, l)
+				}
+			}
 		}
+
 		z, err := template.ParseFiles(tmplFilePath)
 		if err != nil {
 			log.Printf("ERROR ---> tmpl: %v \n", err.Error())
@@ -174,6 +194,10 @@ func postSearch(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (g gameLog) String() string {
+    return g.Log
+}
+
 func getErrLog(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "GET" {
@@ -181,9 +205,27 @@ func getErrLog(w http.ResponseWriter, r *http.Request) {
 			errLog = nil
 		}
 
-		for _, v := range gameLogAll {
-			if strings.Contains(v.Log, "error") || strings.Contains(v.Log, "fail") || strings.Contains(v.Log, "ERROR") || strings.Contains(v.Log, "FAIL") {
-				errLog = append(errLog, v)
+		// for _, v := range gameLogAll {
+		// 	if strings.Contains(v.Log, "error") || strings.Contains(v.Log, "fail") || strings.Contains(v.Log, "ERROR") || strings.Contains(v.Log, "FAIL") {
+		// 		errLog = append(errLog, v)
+		// 	}
+		// }
+
+		// for _, l := range gameLogAll {
+		// 	for _, v := range cfg.CustomKeywords {
+		// 		if strings.Contains(l.Log, v){
+		// 			errLog = append(errLog, l)
+		// 		}
+		// 	}
+		// }
+
+		for _, l := range gameLogAll {
+			for _, v := range cfg.CustomKeywords {
+				regexStr := `\b` + v + `\b`
+				matched, _ := regexp.MatchString(regexStr, l.String())
+				if matched {
+					errLog = append(errLog, l)
+				}
 			}
 		}
 

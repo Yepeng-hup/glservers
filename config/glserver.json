@@ -1,4 +1,5 @@
 {
   "server_ip_port": "0.0.0.0:9091",
-  "log_limitation_num": 10000
+  "log_limitation_num": 10000,
+  "custom_keywords": ["error", "ERROR", "Error", "fail", "FAIL", "Fail"]
 }

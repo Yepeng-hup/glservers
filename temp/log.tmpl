@@ -17,25 +17,33 @@
 </style>
 <body>
 <div>
-    <h3 style="text-align: center;color: #007bff">GLSERVER</h3>
-    <li style="margin-left: 4px;">
+    <h4 style="text-align: center;color: #007bff">GLSERVER</h4>
+    
+    <li style="margin-left: 3px;">
             <span style="color: crimson">
                 <b style="color: black">[日志总条数: {{.logNum}}]</b>
             </span><br><br>
     </li>
+
     <form style="display: inline-block;" method="post" action="/ss">
-        <input type="text" id="searchInput" name="queryStr" placeholder="日志伪名关键字">
+        <input type="text" id="searchInput" name="queryStr" style="border: 1px solid black" placeholder="日志伪名关键字">
+        <select name="selectxz" id="selectxz" class="btn" style="border: 1px solid black">
+            <option value="vague">模糊查询</option>
+            <option value="precise">精准查询</option>
+        </select>
         <button type="submit" class="btn btn-success"><b>搜索</b></button>
     </form>
+
     <a href="/getlog" style="text-decoration: none;">
         <button class="btn btn-primary" style="margin-left: 2px;" id="clog"><b>查看日志</b></button>
     </a>
+
     <a href="/log/err" style="text-decoration: none;">
         <button class="btn btn-primary" style="margin-left: 2px;"><b>检测日志</b></button>
     </a>
 
     <form method="post" action="/del">
-        <button class="btn btn-danger" style="position: absolute;top: 95px;right: 10px;">
+        <button class="btn btn-danger" style="position: absolute;top: 85px;right: 10px;">
             <b>全部删除</b>
         </button>
     </form>
@@ -46,6 +54,7 @@
     <thead class="thead-dark sticky-top">
     <tr>
         <th>推送时间</th>
+	<th>EIP</th>
         <th>日志伪名</th>
         <th>日志内容</th>
     </tr>
@@ -72,6 +81,7 @@
         for (const item of showLists) {
             html += '<tr>';
             html += '<td>' + item.Time + '</td>';
+	    html += '<td>' + item.Eip + '</td>';
             html += '<td>' + item.Pro + '</td>';
             html += '<td>' + '<pre style="color: darkgoldenrod">' + item.Log + '</pre>' + '</td>';
             html += '</tr>';
