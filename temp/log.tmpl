@@ -16,16 +16,18 @@
     }
 </style>
 <body>
+<h4 style="text-align: center;color: #007bff">GLSERVER</h4>
+
 <div>
-    <h4 style="text-align: center;color: #007bff">GLSERVER</h4>
-    
     <li style="margin-left: 3px; font-size: 18px">
             <span style="color: crimson">
-                <b style="color: black">[日志总条数: <b style="color: red">{{.logNum}}</b>]</b>
+                <b style="color: black">日志总条数: [<b style="color: red">{{.logNum}}</b>]</b>
             </span><br><br>
     </li>
+</div>
 
-    <form style="display: inline-block;" method="post" action="/ss">
+<div>
+    <form style="display: inline-block" method="post" action="/ss">
         <input type="text" id="searchInput" name="queryStr" style="border: 1px solid black" placeholder="日志伪名关键字">
         <select name="selectxz" id="selectxz" class="btn" style="border: 1px solid black">
             <option value="vague">模糊查询</option>
