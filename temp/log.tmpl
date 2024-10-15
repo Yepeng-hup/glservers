@@ -19,9 +19,9 @@
 <div>
     <h4 style="text-align: center;color: #007bff">GLSERVER</h4>
     
-    <li style="margin-left: 3px;">
+    <li style="margin-left: 3px; font-size: 18px">
             <span style="color: crimson">
-                <b style="color: black">[日志总条数: {{.logNum}}]</b>
+                <b style="color: black">[日志总条数: <b style="color: red">{{.logNum}}</b>]</b>
             </span><br><br>
     </li>
 
@@ -43,7 +43,7 @@
     </a>
 
     <form method="post" action="/del">
-        <button class="btn btn-danger" style="position: absolute;top: 85px;right: 10px;">
+        <button class="btn btn-danger" style="position: absolute;top: 90px;right: 10px;">
             <b>全部删除</b>
         </button>
     </form>
