@@ -43,6 +43,7 @@ type (
 const (
 	tmplFilePath   = "./temp/log.tmpl"
 	configJsonFile = "./config/glserver.json"
+	apiSecretKey   = "log-server-api-key-abc123-qwertyuiop0912873465"
 )
 
 func readConfigFile(path string) error {
@@ -166,7 +167,7 @@ func postSearch(w http.ResponseWriter, r *http.Request) {
 				}
 				continue
 			}
-		}else {
+		} else {
 			// 精准匹配搜索字符
 			for _, l := range gameLogAll {
 				regexStr := `\b` + searchName + `\b`
@@ -195,7 +196,7 @@ func postSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (g gameLog) String() string {
-    return g.Log
+	return g.Log
 }
 
 func getErrLog(w http.ResponseWriter, r *http.Request) {
@@ -246,6 +247,34 @@ func getErrLog(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type ServerStatus struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
+
+func serverCheck(w http.ResponseWriter, r *http.Request) {
+	//apiKey := r.Header.Get("X-API-KEY")
+	//if apiKey != apiSecretKey {
+	//	w.WriteHeader(http.StatusUnauthorized)
+	//	json.NewEncoder(w).Encode(ServerStatus{
+	//		Status:  "Unauthorized",
+	//		Message: "Invalid API Key",
+	//	})
+	//	return
+	//}
+
+	w.Header().Set("Content-Type", "application/json")
+	status := ServerStatus{
+		Status:  "OK",
+		Message: "Server is running",
+	}
+
+	if err := json.NewEncoder(w).Encode(status); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 func main() {
 	if err := readConfigFile(configJsonFile); err != nil {
 		log.Fatalln("ERROR ---> init jsonfile config fail,", err.Error())
@@ -256,6 +285,7 @@ func main() {
 	http.HandleFunc("/getlog", getLog)
 	http.HandleFunc("/ss", postSearch)
 	http.HandleFunc("/log/err", getErrLog)
+	http.HandleFunc("/check", serverCheck)
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 	log.Printf("INFO ---> http server listen ip and port: %s\n", cfg.ServiceIpPort)
 	if err := http.ListenAndServe(cfg.ServiceIpPort, nil); err != nil {
