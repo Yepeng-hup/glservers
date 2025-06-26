@@ -9,16 +9,11 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	_ "strings"
 	"sync"
 )
 
 var (
 	mu            sync.Mutex
-	timeSlice             = make([]string, 0)
-	eipSlice              = make([]string, 0)
-	proSlice              = make([]string, 0)
-	logSlice              = make([]string, 0)
 	gameLogAll            = make([]gameLog, 0)
 	searchGameLog         = make([]gameLog, 0)
 	errLog                = make([]gameLog, 0)
@@ -37,6 +32,12 @@ type (
 		ServiceIpPort    string   `json:"server_ip_port"`
 		LogLimitationNum int      `json:"log_limitation_num"`
 		CustomKeywords   []string `json:"custom_keywords"`
+	}
+	gameLogJson struct {
+		DateTime string `json:"dateTime"`
+		Eip 	 string `json:"eip"`
+		Title    string `json:"title"`
+		Content  string `json:"content"`
 	}
 )
 
@@ -61,10 +62,6 @@ func readConfigFile(path string) error {
 }
 
 func postDelLog(w http.ResponseWriter, r *http.Request) {
-	timeSlice = nil
-	eipSlice = nil
-	proSlice = nil
-	logSlice = nil
 	gameLogAll = nil
 	log.Println("WARN ---> The client has performed a complete delete operation.Metadata cleared.")
 	w.Header().Set("Cache-Control", "must-revalidate, no-store")
@@ -76,11 +73,20 @@ func postDelLog(w http.ResponseWriter, r *http.Request) {
 
 func postReceiveLog(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
-		err := r.ParseForm()
-		if err != nil {
-			log.Println("ERROR ---> ", err.Error())
+		// err := r.ParseForm()
+		// if err != nil {
+		// 	log.Println("ERROR ---> ", "get ParseForm fail,"+err.Error())
+		// 	return
+		// }
+
+		var p gameLogJson
+		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+			log.Println("ERROR ---> ", "invalid JSON,"+err.Error())
+			message := `{"status": 500, "error": "invalid JSON."}`
+			w.Write([]byte(message))
 			return
 		}
+
 		if len(gameLogAll) >= cfg.LogLimitationNum {
 			message := `{"status": 500, "error": "log overflow max limit num."}`
 			w.Write([]byte(message))
@@ -90,17 +96,13 @@ func postReceiveLog(w http.ResponseWriter, r *http.Request) {
 		go func() {
 			mu.Lock()
 			defer mu.Unlock()
-			timeSlice = append(timeSlice, r.PostForm.Get("dateTime"))
-			eipSlice = append(eipSlice, r.PostForm.Get("eip"))
-			proSlice = append(proSlice, r.PostForm.Get("title"))
-			logSlice = append(logSlice, r.PostForm.Get("content"))
-			index := len(proSlice) - 1
 			g := gameLog{
-				Time: timeSlice[index],
-				Eip:  eipSlice[index],
-				Pro:  proSlice[index],
-				Log:  logSlice[index],
+					Time: p.DateTime,
+					Eip:  p.Eip,
+					Pro:  p.Title,
+					Log:  p.Content,
 			}
+
 			gameLogAll = append(gameLogAll, g)
 		}()
 
@@ -205,20 +207,6 @@ func getErrLog(w http.ResponseWriter, r *http.Request) {
 		if len(errLog) != 0 {
 			errLog = nil
 		}
-
-		// for _, v := range gameLogAll {
-		// 	if strings.Contains(v.Log, "error") || strings.Contains(v.Log, "fail") || strings.Contains(v.Log, "ERROR") || strings.Contains(v.Log, "FAIL") {
-		// 		errLog = append(errLog, v)
-		// 	}
-		// }
-
-		// for _, l := range gameLogAll {
-		// 	for _, v := range cfg.CustomKeywords {
-		// 		if strings.Contains(l.Log, v){
-		// 			errLog = append(errLog, l)
-		// 		}
-		// 	}
-		// }
 
 		for _, l := range gameLogAll {
 			for _, v := range cfg.CustomKeywords {
