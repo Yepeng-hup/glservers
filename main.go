@@ -160,7 +160,7 @@ func postSearch(w http.ResponseWriter, r *http.Request) {
 		searchName := r.PostForm.Get("queryStr")
 		searchMode := r.PostForm.Get("selectxz")
 		if searchMode == "vague" {
-			// 模糊匹配搜索字符
+			// Vague
 			for _, v := range gameLogAll {
 				if strings.Contains(v.Pro, searchName) {
 					searchGameLog = append(searchGameLog, v)
@@ -168,7 +168,7 @@ func postSearch(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 		} else {
-			// 精准匹配搜索字符
+			// Precise
 			for _, l := range gameLogAll {
 				regexStr := `\b` + searchName + `\b`
 				matched, _ := regexp.MatchString(regexStr, l.Pro)
